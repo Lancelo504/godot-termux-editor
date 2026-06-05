@@ -1,0 +1,116 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify imports
+        run: |
+          python -c "
+          from godot_editor.fileutils import detect_language, get_label, get_starter
+          from godot_editor.storage import init, create_project, list_projects
+          from godot_editor.autocomplete import get_class_names, get_class_members
+          print('All imports OK')
+          "
+
+      - name: Verify fileutils
+        run: |
+          python -c "
+          from godot_editor.fileutils import detect_language
+          assert detect_language('player.gd')   == 'gdscript'
+          assert detect_language('level.tscn')  == 'tscn'
+          assert detect_language('sprite.tres') == 'tres'
+          assert detect_language('utils.cpp')   == 'cpp'
+          assert detect_language('main.c')      == 'c'
+          print('fileutils: OK')
+          "
+
+      - name: Verify Godot API data
+        run: |
+          python -c "
+          from godot_editor.autocomplete import get_class_names, get_class_members
+          classes = get_class_names()
+          assert len(classes) >= 1503, f'Expected >=1503 classes, got {len(classes)}'
+          members = get_class_members('Node')
+          assert 'add_child'     in members
+          assert 'remove_child'  in members
+          assert 'get_child'     in members
+          print(f'Godot API: {len(classes)} classes loaded OK')
+          "
+
+      - name: Verify storage
+        run: |
+          python -c "
+          import tempfile, os
+          from pathlib import Path
+          tmp = tempfile.mkdtemp()
+          import godot_editor.storage as s
+          s.BASE_DIR     = Path(tmp) / '.config' / 'godot-editor'
+          s.PROJECTS_DIR = s.BASE_DIR / 'projects'
+          s.CONFIG_FILE  = s.BASE_DIR / 'config.json'
+          s.init()
+          p = s.create_project('Test', 'desc')
+          assert p['name'] == 'Test'
+          ps = s.list_projects()
+          assert len(ps) == 1
+          f = s.create_file(p['id'], 'main.gd', 'extends Node\n')
+          fs = s.list_files(p['id'])
+          assert len(fs) == 1
+          content = s.read_file(p['id'], 'main.gd')
+          assert content == 'extends Node\n'
+          print('Storage: OK')
+          "
+
+  build:
+    name: Build package
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tools
+        run: pip install build
+
+      - name: Build wheel and sdist
+        run: python -m build
+
+      - name: Check dist contents
+        run: |
+          pip install twine
+          twine check dist/*
+          ls -lh dist/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/

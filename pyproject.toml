@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "godot-termux-editor"
+version = "1.0.0"
+description = "Godot Engine code editor for Termux and Linux CLI"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Godot Termux Editor Contributors" }]
+keywords = ["godot", "editor", "termux", "gdscript", "cli", "tscn"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Editors",
+    "Topic :: Text Editors",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "rich>=13.0.0",
+    "prompt_toolkit>=3.0.0",
+    "pygments>=2.14.0",
+]
+
+[project.scripts]
+godot-editor = "godot_editor.main:main"
+
+[project.urls]
+Homepage   = "https://github.com/Lancelot504/godot-termux-editor"
+Repository = "https://github.com/Lancelot504/godot-termux-editor"
+Issues     = "https://github.com/Lancelot504/godot-termux-editor/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["godot_editor*"]
+
+[tool.setuptools.package-data]
+godot_editor = ["data/*.json"]
